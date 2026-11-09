@@ -1,0 +1,1970 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>سامانه هوشمند کارسنج | دبیرستان دوره اول انرژی اتمی</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vazirmatn Persian Font -->
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Vazirmatn', 'sans-serif'],
+                    },
+                    colors: {
+                        atomic: {
+                            950: '#030914',
+                            900: '#0a192f',
+                            800: '#112240',
+                            700: '#1d3557',
+                            cyan: '#00b4d8',
+                            light: '#90e0ef',
+                            gold: '#ffb703',
+                            amber: '#fb8500'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            background-color: #f1f5f9;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .atomic-gradient {
+            background: radial-gradient(circle at top right, #162e58 0%, #0a192f 55%, #030914 100%);
+        }
+        @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-orbit {
+            animation: spin-slow 20s linear infinite;
+        }
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased selection:bg-atomic-cyan selection:text-white min-h-screen flex flex-col">
+
+    <!-- NOTIFICATION TOAST -->
+    <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 hidden transition-all duration-300">
+        <div class="bg-atomic-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-atomic-cyan/40 flex items-center gap-3 text-xs sm:text-sm font-bold">
+            <span class="w-2.5 h-2.5 rounded-full bg-atomic-cyan animate-ping"></span>
+            <span id="toast-msg">عملیات با موفقیت انجام شد</span>
+        </div>
+    </div>
+
+    <!-- IMAGE LIGHTBOX MODAL (نمایش بزرگ تصویر تکلیف) -->
+    <div id="img-modal" onclick="closeImageModal()" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="max-w-3xl w-full bg-white rounded-2xl overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between px-4 py-3 bg-atomic-900 text-white">
+                <span id="img-modal-title" class="text-xs sm:text-sm font-bold">تصویر پیوست تکلیف</span>
+                <button onclick="closeImageModal()" class="text-rose-400 hover:text-white font-black text-sm px-2 py-1">✕ بستن</button>
+            </div>
+            <div class="p-4 bg-slate-900 flex items-center justify-center max-h-[75vh] overflow-auto">
+                <img id="img-modal-src" src="" alt="Homework" class="max-h-[70vh] w-auto rounded-lg object-contain">
+            </div>
+        </div>
+    </div>
+
+    <!-- EDIT USER MODAL (ویرایش نام، کلاس و رمز عبور توسط مدیر) -->
+    <div id="edit-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="max-w-md w-full bg-white rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
+            <div class="flex items-center justify-between px-5 py-3.5 bg-atomic-900 text-white">
+                <span id="edit-modal-title" class="text-sm font-black">ویرایش اطلاعات کاربر</span>
+                <button onclick="closeEditModal()" class="text-slate-300 hover:text-white text-sm font-bold">✕</button>
+            </div>
+            <form onsubmit="saveEditedUser(event)" class="p-5 space-y-3.5 text-xs sm:text-sm">
+                <input type="hidden" id="edit-user-type">
+                <input type="hidden" id="edit-user-orig-code">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">نام و نام خانوادگی</label>
+                    <input type="text" id="edit-user-name" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-atomic-cyan">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">کد ورود / شناسه کاربری</label>
+                    <input type="text" id="edit-user-code" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 outline-none font-mono focus:border-atomic-cyan">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">رمز عبور جدید</label>
+                    <input type="text" id="edit-user-pass" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 outline-none font-mono focus:border-atomic-cyan">
+                </div>
+                <div id="edit-class-wrap" class="hidden">
+                    <label class="block text-xs font-bold text-slate-600 mb-1">کلاس دانش‌آموز</label>
+                    <select id="edit-user-class" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 outline-none font-bold">
+                        <option value="701">کلاس ۷۰۱ (پایه هفتم)</option>
+                        <option value="702">کلاس ۷۰۲ (پایه هفتم)</option>
+                        <option value="801">کلاس ۸۰۱ (پایه هشتم)</option>
+                        <option value="802">کلاس ۸۰۲ (پایه هشتم)</option>
+                        <option value="901">کلاس ۹۰۱ (پایه نهم)</option>
+                        <option value="902">کلاس ۹۰۲ (پایه نهم)</option>
+                    </select>
+                </div>
+                <div id="edit-extra-wrap" class="hidden">
+                    <label class="block text-xs font-bold text-slate-600 mb-1">سمت / درس تخصصی</label>
+                    <input type="text" id="edit-user-extra" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-atomic-cyan">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeEditModal()" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs">انصراف</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-atomic-900 hover:bg-atomic-800 text-white font-bold text-xs">ذخیره تغییرات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         1. UNIFIED SMART LOGIN PAGE (ورود یکپارچه بدون انتخاب نقش)
+         ========================================== -->
+    <section id="login-screen" class="min-h-screen w-full atomic-gradient flex items-center justify-center p-4 relative overflow-hidden">
+        <div class="absolute -top-32 -right-32 w-96 h-96 rounded-full border border-atomic-cyan/10 pointer-events-none"></div>
+        <div class="absolute -bottom-40 -left-40 w-[520px] h-[520px] rounded-full border border-atomic-gold/10 pointer-events-none"></div>
+
+        <div class="w-full max-w-md bg-white/10 backdrop-blur-xl border border-white/15 rounded-3xl shadow-2xl p-6 sm:p-8 text-white relative z-10">
+            <!-- AEOI Emblem Header -->
+            <div class="flex flex-col items-center text-center mb-6">
+                <div class="w-20 h-20 rounded-2xl bg-atomic-900/90 border border-atomic-cyan/50 flex items-center justify-center shadow-lg shadow-atomic-cyan/20 mb-3 relative">
+                    <svg class="w-14 h-14 text-atomic-cyan animate-orbit" viewBox="0 0 100 100" fill="none">
+                        <ellipse cx="50" cy="50" rx="42" ry="16" stroke="currentColor" stroke-width="3.5" transform="rotate(30 50 50)"/>
+                        <ellipse cx="50" cy="50" rx="42" ry="16" stroke="currentColor" stroke-width="3.5" transform="rotate(90 50 50)"/>
+                        <ellipse cx="50" cy="50" rx="42" ry="16" stroke="currentColor" stroke-width="3.5" transform="rotate(150 50 50)"/>
+                    </svg>
+                    <div class="w-4 h-4 rounded-full bg-atomic-gold absolute shadow-[0_0_14px_#ffb703]"></div>
+                </div>
+                <span class="text-[11px] font-bold tracking-wider text-atomic-light bg-atomic-cyan/15 px-3 py-1 rounded-full border border-atomic-cyan/30 mb-2">
+                    مجتمع آموزشی سازمان انرژی اتمی ایران
+                </span>
+                <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight">سامانه هوشمند کارسنج</h1>
+                <p class="text-xs text-slate-300 mt-1">دبیرستان دوره اول (کلاس‌های ۷۰۱، ۷۰۲، ۸۰۱، ۸۰۲، ۹۰۱ و ۹۰۲)</p>
+            </div>
+
+            <!-- Single Unified Login Form (تشخیص خودکار نقش از روی کد کاربری) -->
+            <form onsubmit="handleUnifiedLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-200 mb-1.5">کد کاربری (دانش‌آموز، دبیر، معاون یا مدیر)</label>
+                    <input type="text" id="login-username" required placeholder="کد اختصاصی خود را وارد کنید..." value="98101"
+                        class="w-full bg-atomic-950/70 border border-white/20 focus:border-atomic-cyan rounded-xl px-4 py-3 text-sm text-white placeholder-slate-400 outline-none transition font-mono">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-200 mb-1.5">رمز عبور</label>
+                    <input type="password" id="login-password" required placeholder="رمز عبور..." value="8101"
+                        class="w-full bg-atomic-950/70 border border-white/20 focus:border-atomic-cyan rounded-xl px-4 py-3 text-sm text-white placeholder-slate-400 outline-none transition font-mono">
+                </div>
+
+                <!-- Unified Quick Demo List -->
+                <div class="bg-atomic-950/75 border border-atomic-gold/30 rounded-2xl p-3 text-xs text-slate-300">
+                    <div class="font-bold text-atomic-gold mb-1.5">راهنمای کدهای ورود (تشخیص هوشمند پنل با کلیک):</div>
+                    <div id="unified-login-hints" class="space-y-1.5 max-h-36 overflow-y-auto custom-scroll pl-1"></div>
+                </div>
+
+                <button type="submit" class="w-full bg-gradient-to-l from-atomic-cyan to-sky-400 hover:from-sky-400 hover:to-atomic-cyan text-atomic-950 font-black py-3.5 rounded-xl shadow-lg shadow-atomic-cyan/25 transition-all text-sm">
+                    ورود هوشمند به کارسنج
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <!-- ==========================================
+         2. MAIN APPLICATION PORTAL (پرتال اصلی بدون دکمه‌های تکراری)
+         ========================================== -->
+    <div id="app-portal" class="hidden flex-1 flex flex-col min-h-screen">
+        
+        <!-- Top Header -->
+        <header class="bg-atomic-900 text-white border-b border-atomic-700 sticky top-0 z-30 shadow-md">
+            <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-atomic-800 border border-atomic-cyan/50 flex items-center justify-center relative shrink-0">
+                        <svg class="w-7 h-7 text-atomic-cyan animate-orbit" viewBox="0 0 100 100" fill="none">
+                            <ellipse cx="50" cy="50" rx="42" ry="16" stroke="currentColor" stroke-width="4" transform="rotate(30 50 50)"/>
+                            <ellipse cx="50" cy="50" rx="42" ry="16" stroke="currentColor" stroke-width="4" transform="rotate(90 50 50)"/>
+                            <ellipse cx="50" cy="50" rx="42" ry="16" stroke="currentColor" stroke-width="4" transform="rotate(150 50 50)"/>
+                        </svg>
+                        <div class="w-2 h-2 rounded-full bg-atomic-gold absolute"></div>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 class="font-black text-sm sm:text-base text-white">سامانه کارسنج انرژی اتمی</h2>
+                            <span id="header-role-badge" class="text-[11px] bg-atomic-cyan/20 text-atomic-light border border-atomic-cyan/40 px-2.5 py-0.5 rounded-full font-bold">
+                                پنل کاربری
+                            </span>
+                        </div>
+                        <p id="header-user-info-mobile" class="text-[11px] text-atomic-gold sm:hidden">-</p>
+                        <p class="text-[11px] text-slate-300 hidden sm:block">دبیرستان دوره اول (کلاس‌های ۷۰۱ تا ۹۰۲)</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <div class="text-left hidden sm:block">
+                        <div id="header-user-name" class="text-xs font-bold text-white">-</div>
+                        <div id="header-user-sub" class="text-[11px] text-atomic-gold">-</div>
+                    </div>
+                    <button onclick="logout()" class="bg-rose-500/15 hover:bg-rose-500 text-rose-300 hover:text-white border border-rose-500/30 px-3.5 py-2 rounded-xl text-xs font-bold transition">
+                        خروج
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Clean Single-Column Container (بدون سایدبار و منوی تکراری) -->
+        <main class="max-w-6xl w-full mx-auto flex-1 p-4 sm:p-6">
+
+            <!-- =========================================================
+                 PANEL A: STUDENT PANEL (پنل دانش‌آموز - یک ردیف دکمه واحد)
+                 ========================================================= -->
+            <div id="panel-student" class="role-panel space-y-6">
+                
+                <!-- تنها نوار انتخاب بخش دانش‌آموز (بدون دکمه تکراری) -->
+                <div class="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button onclick="switchStudentSection('studies')" id="tab-btn-studies"
+                        class="py-3 px-3 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-1.5 bg-atomic-900 text-white shadow">
+                        <span>📚 ۱. بخش مطالعات و آزاد</span>
+                    </button>
+                    <button onclick="switchStudentSection('homeworks')" id="tab-btn-homeworks"
+                        class="py-3 px-3 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-1.5 text-slate-600 hover:bg-slate-100">
+                        <span>📝 ۲. بخش تکالیف و ارسال تصویر</span>
+                    </button>
+                    <button onclick="switchStudentSection('dashboard')" id="tab-btn-dashboard"
+                        class="py-3 px-3 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-1.5 text-slate-600 hover:bg-slate-100">
+                        <span>📊 ۳. کارسنج هوشمند (تحلیل و رتبه)</span>
+                    </button>
+                </div>
+
+                <!-- STUDENT SECTION 1: بخش مطالعات (ثبت مطالعه + بخش آزاد) -->
+                <div id="student-sec-studies" class="space-y-6">
+                    <div class="bg-gradient-to-l from-atomic-900 via-atomic-800 to-atomic-900 text-white rounded-2xl p-4 sm:p-5 shadow-md flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-r-4 border-atomic-gold">
+                        <div>
+                            <div id="student-banner-info" class="text-xs text-atomic-gold font-bold mb-1">دفتر برنامه‌ریزی هوشمند کارسنج</div>
+                            <h3 class="text-base sm:text-lg font-black">ثبت مطالعه درسی و فعالیت‌های بخش آزاد</h3>
+                            <p class="text-xs text-slate-300 mt-1">پر کردن فیلدها اجباری نیست؛ می‌توانید فعالیت‌های مهارتی، پژوهشی و غیردرسی را هم در بخش آزاد ثبت کنید.</p>
+                        </div>
+
+                        <!-- Live Stopwatch -->
+                        <div class="bg-atomic-950/70 border border-white/15 rounded-2xl p-3 flex items-center justify-between sm:justify-start gap-3 shrink-0">
+                            <div>
+                                <div class="text-[10px] text-atomic-light">کرنومتر زنده مطالعه</div>
+                                <div id="timer-display" class="font-mono text-lg font-black text-atomic-gold tracking-wider">00:00:00</div>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <button type="button" onclick="toggleTimer()" id="timer-toggle-btn" class="bg-atomic-cyan hover:bg-sky-400 text-atomic-950 text-xs font-black px-3 py-2 rounded-xl transition">
+                                    شروع
+                                </button>
+                                <button type="button" onclick="applyTimerToForm()" class="bg-white/10 hover:bg-white/20 text-white text-xs font-bold px-2.5 py-2 rounded-xl transition">
+                                    درج در فرم
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        <!-- Flexible Study Log Form -->
+                        <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                            <div class="flex items-center justify-between mb-4">
+                                <h4 class="font-black text-sm text-atomic-900 flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-atomic-cyan"></span>
+                                    فرم ثبت مطالعه (منعطف)
+                                </h4>
+                                <span class="text-[11px] bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-lg font-semibold">فیلدها اختیاری</span>
+                            </div>
+
+                            <form onsubmit="submitStudyLog(event)" class="space-y-3.5">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-600 mb-1.5">نوع ثبت در کارسنج</label>
+                                    <div class="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-xl">
+                                        <button type="button" onclick="setStudyMode('academic')" id="mode-btn-academic" class="py-2 rounded-lg text-xs font-bold bg-white text-atomic-900 shadow-sm transition">
+                                            📖 دروس مدرسه
+                                        </button>
+                                        <button type="button" onclick="setStudyMode('free')" id="mode-btn-free" class="py-2 rounded-lg text-xs font-bold text-slate-600 transition">
+                                            🌟 بخش آزاد و مهارتی
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div id="academic-subject-wrap">
+                                    <label class="block text-xs font-bold text-slate-600 mb-1">انتخاب درس <span class="text-slate-400 font-normal">(اختیاری)</span></label>
+                                    <select id="study-subject" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-atomic-cyan">
+                                        <option value="">-- بدون انتخاب درس خاص (عمومی) --</option>
+                                        <option value="ریاضی (پایه و تکمیلی)" selected>ریاضی (پایه و تکمیلی)</option>
+                                        <option value="علوم تجربی (فیزیک و شیمی)">علوم تجربی (فیزیک و شیمی)</option>
+                                        <option value="علوم تجربی (زیست و زمین)">علوم تجربی (زیست و زمین)</option>
+                                        <option value="ادبیات فارسی">ادبیات فارسی و نگارش</option>
+                                        <option value="عربی">عربی، زبان قرآن</option>
+                                        <option value="زبان انگلیسی">زبان انگلیسی</option>
+                                        <option value="مطالعات اجتماعی">مطالعات اجتماعی</option>
+                                        <option value="پیام‌های آسمان و قرآن">پیام‌های آسمان و قرآن</option>
+                                        <option value="پژوهش و انرژی اتمی">پژوهش و کارگاه انرژی اتمی</option>
+                                    </select>
+                                </div>
+
+                                <div id="free-title-wrap" class="hidden">
+                                    <label class="block text-xs font-bold text-atomic-amber mb-1">عنوان فعالیت بخش آزاد <span class="text-slate-400 font-normal">(اختیاری)</span></label>
+                                    <input type="text" id="study-free-title" placeholder="مثلاً: برنامه‌نویسی، مطالعه آزاد، المپیاد، رباتیک..."
+                                        class="w-full bg-amber-50/50 border border-amber-300 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-atomic-amber">
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-600 mb-1">مدت زمان (دقیقه) <span class="text-slate-400 font-normal">(اختیاری)</span></label>
+                                        <input type="number" id="study-duration" min="0" max="600" placeholder="مثلاً 45"
+                                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-atomic-cyan">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-600 mb-1">تمرین / تست <span class="text-slate-400 font-normal">(اختیاری)</span></label>
+                                        <input type="number" id="study-exercises" min="0" max="500" placeholder="مثلاً 15"
+                                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-atomic-cyan">
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-600 mb-1">مبحث یا توضیحات <span class="text-slate-400 font-normal">(اختیاری)</span></label>
+                                    <input type="text" id="study-topic" placeholder="مثلاً: فصل ۳ ساختار اتم"
+                                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-atomic-cyan">
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-600 mb-1">یادداشت بخش آزاد <span class="text-slate-400 font-normal">(اختیاری)</span></label>
+                                    <textarea id="study-free-note" rows="2" placeholder="هر توضیح دلخواه یا گزارش فعالیت آزاد..."
+                                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-atomic-cyan"></textarea>
+                                </div>
+
+                                <button type="submit" class="w-full bg-atomic-900 hover:bg-atomic-800 text-white font-black py-3 rounded-xl text-sm transition shadow-lg">
+                                    + ثبت در دفتر مطالعات کارسنج
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Student Study History Table -->
+                        <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col">
+                            <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                                <div>
+                                    <h4 class="font-black text-sm text-atomic-900">سوابق مطالعاتی و بخش آزاد من</h4>
+                                    <p class="text-[11px] text-slate-400">ثبت‌شده با کد اختصاصی شما</p>
+                                </div>
+                                <span class="text-xs bg-sky-50 text-sky-800 border border-sky-200 px-3 py-1 rounded-xl font-bold">
+                                    مجموع: <strong id="student-total-hours">۰ ساعت</strong>
+                                </span>
+                            </div>
+
+                            <div class="overflow-x-auto custom-scroll flex-1">
+                                <table class="w-full text-right text-xs sm:text-sm">
+                                    <thead>
+                                        <tr class="border-b border-slate-200 text-slate-500 text-xs">
+                                            <th class="py-2.5 px-2">نوع / درس</th>
+                                            <th class="py-2.5 px-2">مبحث و یادداشت</th>
+                                            <th class="py-2.5 px-2">مدت</th>
+                                            <th class="py-2.5 px-2">تمرین</th>
+                                            <th class="py-2.5 px-2 text-center">حذف</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="student-study-tbody" class="divide-y divide-slate-100"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STUDENT SECTION 2: بخش مجزای تکالیف دانش‌آموز + بارگذاری تصویر -->
+                <div id="student-sec-homeworks" class="hidden space-y-6">
+                    <div class="bg-gradient-to-l from-atomic-900 to-atomic-800 text-white rounded-2xl p-4 sm:p-5 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-r-4 border-atomic-cyan">
+                        <div>
+                            <div class="text-xs text-atomic-light font-bold mb-1">بخش اختصاصی تکالیف کلاسی</div>
+                            <h3 class="text-base sm:text-lg font-black">مشاهده تکالیف دبیران و ارسال پاسخ به همراه تصویر</h3>
+                            <p class="text-xs text-slate-300 mt-1">تکالیف تعریف‌شده برای کلاس خود را مشاهده کنید و عکس برگه حل تکلیف یا توضیحات خود را بارگذاری نمایید.</p>
+                        </div>
+                        <div class="bg-white/10 rounded-xl px-4 py-2.5 text-center shrink-0">
+                            <div class="text-[11px] text-slate-300">کلاس شما</div>
+                            <div id="hw-student-class-badge" class="text-lg font-black text-atomic-gold">۸۰۱</div>
+                        </div>
+                    </div>
+
+                    <div id="student-homework-list" class="space-y-4"></div>
+                </div>
+
+                <!-- STUDENT SECTION 3: بخش کارسنج هوشمند (تحلیل و رتبه) -->
+                <div id="student-sec-dashboard" class="hidden space-y-6">
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                            <div class="text-xs text-slate-500">ساعت مطالعه کل شما</div>
+                            <div id="dash-total-hours" class="text-xl font-black text-atomic-900 mt-1">۰ ساعت</div>
+                            <div class="text-[11px] text-emerald-600 font-semibold mt-1">هدف هفتگی: ۱۵ ساعت</div>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                            <div class="text-xs text-slate-500">کل تمرین و تست</div>
+                            <div id="dash-total-exercises" class="text-xl font-black text-atomic-cyan mt-1">۰ مورد</div>
+                            <div class="text-[11px] text-slate-400 mt-1">دروس متوسطه اول</div>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                            <div class="text-xs text-slate-500">تکالیف تحویل‌شده</div>
+                            <div id="dash-hw-done" class="text-xl font-black text-atomic-amber mt-1">۰ تکلیف</div>
+                            <div class="text-[11px] text-slate-400 mt-1">با بارگذاری تصویر</div>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                            <div class="text-xs text-slate-500">وضعیت حضور امروز</div>
+                            <div id="dash-attendance-status" class="text-base font-black text-emerald-600 mt-1.5">حاضر در مدرسه</div>
+                            <div class="text-[11px] text-slate-400 mt-1">ثبت توسط دبیر کلاس</div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                            <h4 class="font-black text-sm text-atomic-900 mb-1">نمودار تعادل مطالعاتی و بخش آزاد</h4>
+                            <p class="text-xs text-slate-400 mb-4">تفکیک زمان صرف‌شده در دروس مختلف و بخش آزاد</p>
+                            <div id="subject-bars-container" class="space-y-3"></div>
+                        </div>
+
+                        <div class="lg:col-span-5 space-y-6">
+                            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h4 class="font-black text-sm text-atomic-900">🏆 تابلوی افتخارات کارسنج</h4>
+                                    <span class="text-[11px] text-atomic-amber font-bold">برترین‌های ۷۰۱ تا ۹۰۲</span>
+                                </div>
+                                <div id="leaderboard-list" class="space-y-2.5"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- =========================================================
+                 PANEL B: TEACHER PANEL (پنل دبیران - یک ردیف دکمه واحد)
+                 ========================================================= -->
+            <div id="panel-teacher" class="role-panel hidden space-y-6">
+                <!-- تنها نوار انتخاب بخش دبیر -->
+                <div class="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm grid grid-cols-2 gap-2">
+                    <button onclick="switchTeacherTab('attendance')" id="t-tab-attendance" class="py-3 px-4 rounded-xl text-xs sm:text-sm font-black bg-atomic-900 text-white shadow transition">
+                        📋 ۱. حضور و غیاب کلاس‌ها (۷۰۱ تا ۹۰۲)
+                    </button>
+                    <button onclick="switchTeacherTab('homework')" id="t-tab-homework" class="py-3 px-4 rounded-xl text-xs sm:text-sm font-black text-slate-600 hover:bg-slate-100 transition">
+                        📝 ۲. تعریف تکلیف جدید و بررسی تصاویر ارسالی
+                    </button>
+                </div>
+
+                <!-- TEACHER TAB 1: ATTENDANCE -->
+                <div id="teacher-sec-attendance" class="space-y-6">
+                    <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <span class="text-xs font-bold text-atomic-cyan">پنل دبیران دبیرستان انرژی اتمی</span>
+                            <h3 class="text-base sm:text-lg font-black text-atomic-900 mt-0.5">ثبت حضور و غیاب به تفکیک کلاس (۷۰۱ تا ۹۰۲)</h3>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <select id="teacher-class-select" onchange="renderAttendanceList()" class="bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm font-bold text-atomic-900 outline-none">
+                                <option value="701">کلاس ۷۰۱ (پایه هفتم)</option>
+                                <option value="702">کلاس ۷۰۲ (پایه هفتم)</option>
+                                <option value="801" selected>کلاس ۸۰۱ (پایه هشتم)</option>
+                                <option value="802">کلاس ۸۰۲ (پایه هشتم)</option>
+                                <option value="901">کلاس ۹۰۱ (پایه نهم)</option>
+                                <option value="902">کلاس ۹۰۲ (پایه نهم)</option>
+                            </select>
+                            <button onclick="markAllAttendance('present')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold">همه حاضر</button>
+                            <button onclick="saveAttendance()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs sm:text-sm transition shadow">
+                                ذخیره نهایی
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm overflow-x-auto custom-scroll">
+                        <table class="w-full text-right text-xs sm:text-sm">
+                            <thead>
+                                <tr class="border-b border-slate-200 text-slate-500 text-xs">
+                                    <th class="py-3 px-2">کد دانش‌آموز</th>
+                                    <th class="py-3 px-2">نام و نام خانوادگی</th>
+                                    <th class="py-3 px-2">کلاس</th>
+                                    <th class="py-3 px-2">مجموع مطالعه</th>
+                                    <th class="py-3 px-2">آخرین مطالعه / بخش آزاد</th>
+                                    <th class="py-3 px-2 text-center">وضعیت حضور امروز</th>
+                                </tr>
+                            </thead>
+                            <tbody id="teacher-attendance-tbody" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TEACHER TAB 2: HOMEWORK CREATION & SUBMISSIONS -->
+                <div id="teacher-sec-homework" class="hidden space-y-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm h-fit">
+                            <h4 class="font-black text-sm text-atomic-900 mb-4 flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-atomic-cyan"></span>
+                                تعریف تکلیف جدید (همراه با بارگذاری تصویر)
+                            </h4>
+                            <form onsubmit="createHomework(event)" class="space-y-3.5 text-xs sm:text-sm">
+                                <div class="grid grid-cols-2 gap-2.5">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-600 mb-1">کلاس هدف</label>
+                                        <select id="hw-target-class" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold outline-none">
+                                            <option value="701">کلاس ۷۰۱</option>
+                                            <option value="702">کلاس ۷۰۲</option>
+                                            <option value="801" selected>کلاس ۸۰۱</option>
+                                            <option value="802">کلاس ۸۰۲</option>
+                                            <option value="901">کلاس ۹۰۱</option>
+                                            <option value="902">کلاس ۹۰۲</option>
+                                            <option value="all">همه کلاس‌ها (۷۰۱ تا ۹۰۲)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-600 mb-1">نام درس</label>
+                                        <input type="text" id="hw-subject" required placeholder="مثلاً: ریاضی / علوم"
+                                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs outline-none">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-600 mb-1">عنوان تکلیف</label>
+                                    <input type="text" id="hw-title" required placeholder="مثلاً: حل تمرین‌های صفحه ۴۲ + تصویر برگه"
+                                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-600 mb-1">توضیحات تکلیف و مهلت تحویل</label>
+                                    <textarea id="hw-desc" rows="3" required placeholder="توضیحات کامل تکلیف را بنویسید..."
+                                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-600 mb-1">بارگذاری تصویر نمونه سوال / ضمیمه دبیر (اختیاری)</label>
+                                    <input type="file" id="hw-teacher-img" accept="image/*"
+                                        class="w-full bg-slate-50 border border-dashed border-slate-300 rounded-xl p-2 text-xs text-slate-600">
+                                </div>
+                                <button type="submit" class="w-full bg-atomic-900 hover:bg-atomic-800 text-white font-black py-3 rounded-xl text-xs sm:text-sm transition shadow">
+                                    + انتشار تکلیف برای دانش‌آموزان
+                                </button>
+                            </form>
+                        </div>
+
+                        <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                            <h4 class="font-black text-sm text-atomic-900 mb-1">لیست تکالیف و پاسخ‌های ارسالی دانش‌آموزان</h4>
+                            <p class="text-xs text-slate-400 mb-4">تصاویر بارگذاری‌شده توسط دانش‌آموزان را در زیر هر تکلیف مشاهده کنید</p>
+                            <div id="teacher-homework-list" class="space-y-4"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- =========================================================
+                 PANEL C: ADMIN & VICE-PRINCIPAL (پنل مدیر و معاونان - یک ردیف دکمه واحد)
+                 ========================================================= -->
+            <div id="panel-admin" class="role-panel hidden space-y-6">
+                <!-- Top Summary Cards -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                        <div class="text-xs text-slate-500">دانش‌آموزان (۷۰۱ تا ۹۰۲)</div>
+                        <div id="admin-total-students" class="text-xl font-black text-atomic-900 mt-1">-</div>
+                        <div class="text-[11px] text-emerald-600 font-semibold mt-1">۶ کلاس متوسطه اول</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                        <div class="text-xs text-slate-500">کادر دبیران و معاونان</div>
+                        <div id="admin-total-staff" class="text-xl font-black text-atomic-cyan mt-1">-</div>
+                        <div class="text-[11px] text-slate-400 mt-1">قابل ویرایش نام و رمز</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                        <div class="text-xs text-slate-500">تکالیف فعال سامانه</div>
+                        <div id="admin-total-hw" class="text-xl font-black text-atomic-amber mt-1">-</div>
+                        <div class="text-[11px] text-slate-400 mt-1">با پشتیبانی بارگذاری تصویر</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                        <div class="text-xs text-slate-500">حاضرین امروز مدرسه</div>
+                        <div id="admin-present-count" class="text-xl font-black text-emerald-600 mt-1">-</div>
+                        <div class="text-[11px] text-slate-400 mt-1">رصد زنده کلاس‌ها</div>
+                    </div>
+                </div>
+
+                <!-- تنها نوار مدیریت کل (بدون دکمه‌های تکراری کناری) -->
+                <div class="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button onclick="switchAdminSubTab('students')" id="adm-tab-students" class="py-3 px-3 rounded-xl text-xs font-black bg-atomic-900 text-white shadow">
+                        👨‍🎓 ۱. دانش‌آموزان و حضور و غیاب (۷۰۱ تا ۹۰۲)
+                    </button>
+                    <button onclick="switchAdminSubTab('staff')" id="adm-tab-staff" class="py-3 px-3 rounded-xl text-xs font-black text-slate-600 hover:bg-slate-100">
+                        👔 ۲. تنظیمات مدیر، معاونان و دبیران
+                    </button>
+                    <button onclick="switchAdminSubTab('homeworks')" id="adm-tab-homeworks" class="py-3 px-3 rounded-xl text-xs font-black text-slate-600 hover:bg-slate-100">
+                        📝 ۳. مدیریت و ثبت تکالیف و تصاویر
+                    </button>
+                </div>
+
+                <!-- ADMIN SUB-TAB 1: STUDENTS MANAGEMENT (701-902) -->
+                <div id="admin-sub-students" class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                        <div>
+                            <h3 class="font-black text-base text-atomic-900">افزودن و مدیریت دانش‌آموزان (کلاس‌های ۷۰۱، ۷۰۲، ۸۰۱، ۸۰۲، ۹۰۱، ۹۰۲)</h3>
+                            <p class="text-xs text-slate-500 mt-0.5">تعیین کلاس، کد ورود، رمز عبور، وضعیت حضور و غیاب و ویرایش نام هر دانش‌آموز</p>
+                        </div>
+                        <select id="admin-class-filter" onchange="renderAdminTable()" class="bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold">
+                            <option value="all">همه کلاس‌ها (۷۰۱ تا ۹۰۲)</option>
+                            <option value="701">فقط کلاس ۷۰۱</option>
+                            <option value="702">فقط کلاس ۷۰۲</option>
+                            <option value="801">فقط کلاس ۸۰۱</option>
+                            <option value="802">فقط کلاس ۸۰۲</option>
+                            <option value="901">فقط کلاس ۹۰۱</option>
+                            <option value="902">فقط کلاس ۹۰۲</option>
+                        </select>
+                    </div>
+
+                    <form onsubmit="adminAddStudent(event)" class="grid grid-cols-1 sm:grid-cols-5 gap-2.5 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                        <input type="text" id="new-std-name" required placeholder="نام و نام خانوادگی" class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none">
+                        <input type="text" id="new-std-code" required placeholder="کد ورود (مثلاً 98205)" class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none font-mono">
+                        <input type="text" id="new-std-pass" required placeholder="رمز عبور (مثلاً 8205)" class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none font-mono">
+                        <select id="new-std-class" class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none font-bold">
+                            <option value="701">کلاس ۷۰۱ (هفتم)</option>
+                            <option value="702">کلاس ۷۰۲ (هفتم)</option>
+                            <option value="801">کلاس ۸۰۱ (هشتم)</option>
+                            <option value="802">کلاس ۸۰۲ (هشتم)</option>
+                            <option value="901">کلاس ۹۰۱ (نهم)</option>
+                            <option value="902">کلاس ۹۰۲ (نهم)</option>
+                        </select>
+                        <button type="submit" class="bg-atomic-900 hover:bg-atomic-800 text-white font-bold rounded-lg px-4 py-2 text-xs transition">
+                            + افزودن دانش‌آموز
+                        </button>
+                    </form>
+
+                    <div class="overflow-x-auto custom-scroll">
+                        <table class="w-full text-right text-xs sm:text-sm">
+                            <thead>
+                                <tr class="border-b border-slate-200 text-slate-500 text-xs">
+                                    <th class="py-3 px-2">نام دانش‌آموز</th>
+                                    <th class="py-3 px-2">کلاس</th>
+                                    <th class="py-3 px-2">کد ورود</th>
+                                    <th class="py-3 px-2">رمز عبور</th>
+                                    <th class="py-3 px-2">مجموع مطالعه</th>
+                                    <th class="py-3 px-2">وضعیت حضور</th>
+                                    <th class="py-3 px-2 text-center">ویرایش نام/رمز و مدیریت</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-master-tbody" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ADMIN SUB-TAB 2: PRINCIPAL, VICE-PRINCIPALS & TEACHERS -->
+                <div id="admin-sub-staff" class="hidden space-y-6">
+                    <!-- 1. Principal Own Account Settings -->
+                    <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                        <h3 class="font-black text-sm sm:text-base text-atomic-900 mb-1">⚙️ تنظیمات حساب کاربری مدیر کل سامانه</h3>
+                        <p class="text-xs text-slate-500 mb-4">نام و نام خانوادگی، شناسه ورود و رمز عبور خود (مدیر مدرسه) را از این بخش تنظیم کنید</p>
+                        <form onsubmit="updatePrincipalAccount(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-amber-50/60 p-4 rounded-xl border border-amber-200">
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">نام و نام خانوادگی مدیر</label>
+                                <input type="text" id="principal-name-inp" required class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">کد ورود مدیر</label>
+                                <input type="text" id="principal-code-inp" required class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">رمز عبور مدیر</label>
+                                <input type="text" id="principal-pass-inp" required class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono outline-none">
+                            </div>
+                            <div class="flex items-end">
+                                <button type="submit" class="w-full bg-atomic-900 hover:bg-atomic-800 text-white font-bold rounded-lg px-4 py-2 text-xs transition">
+                                    ذخیره مشخصات مدیر
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- 2. Vice-Principals Management -->
+                    <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
+                        <div>
+                            <h3 class="font-black text-sm sm:text-base text-atomic-900">👔 مدیریت و افزودن معاونان مدرسه</h3>
+                            <p class="text-xs text-slate-500">معاونان با زدن کد کاربری خودشان در صفحه ورود، مستقیماً وارد پنل مدیریت می‌شوند</p>
+                        </div>
+                        <form onsubmit="adminAddVice(event)" class="grid grid-cols-1 sm:grid-cols-5 gap-2.5 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                            <input type="text" id="new-vp-name" required placeholder="نام و نام خانوادگی معاون" class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none">
+                            <input type="text" id="new-vp-role" required placeholder="سمت (مثلاً معاون پایه هشتم)" class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none">
+                            <input type="text" id="new-vp-code" required placeholder="کد ورود (مثلاً VP-102)" class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono outline-none">
+                            <input type="text" id="new-vp-pass" required placeholder="رمز عبور" class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono outline-none">
+                            <button type="submit" class="bg-atomic-900 hover:bg-atomic-800 text-white font-bold rounded-lg px-4 py-2 text-xs transition">
+                                + افزودن معاون جدید
+                            </button>
+                        </form>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-right text-xs sm:text-sm">
+                                <thead>
+                                    <tr class="border-b border-slate-200 text-slate-500 text-xs">
+                                        <th class="py-2.5 px-2">نام و نام خانوادگی معاون</th>
+                                        <th class="py-2.5 px-2">سمت</th>
+                                        <th class="py-2.5 px-2">کد ورود</th>
+                                        <th class="py-2.5 px-2">رمز عبور</th>
+                                        <th class="py-2.5 px-2 text-center">ویرایش نام و رمز / حذف</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-vp-tbody" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 3. Teachers Management -->
+                    <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
+                        <div>
+                            <h3 class="font-black text-sm sm:text-base text-atomic-900">👨‍🏫 مدیریت و افزودن دبیران مدرسه</h3>
+                            <p class="text-xs text-slate-500">دبیران با وارد کردن کد خود در صفحه ورود، مستقیماً وارد پنل دبیران می‌شوند</p>
+                        </div>
+                        <form onsubmit="adminAddTeacher(event)" class="grid grid-cols-1 sm:grid-cols-5 gap-2.5 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                            <input type="text" id="new-tch-name" required placeholder="نام و نام خانوادگی دبیر" class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none">
+                            <input type="text" id="new-tch-subj" required placeholder="درس (مثلاً دبیر فیزیک و علوم)" class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none">
+                            <input type="text" id="new-tch-code" required placeholder="کد ورود (مثلاً T-405)" class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono outline-none">
+                            <input type="text" id="new-tch-pass" required placeholder="رمز عبور" class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono outline-none">
+                            <button type="submit" class="bg-atomic-900 hover:bg-atomic-800 text-white font-bold rounded-lg px-4 py-2 text-xs transition">
+                                + افزودن دبیر جدید
+                            </button>
+                        </form>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-right text-xs sm:text-sm">
+                                <thead>
+                                    <tr class="border-b border-slate-200 text-slate-500 text-xs">
+                                        <th class="py-2.5 px-2">نام و نام خانوادگی دبیر</th>
+                                        <th class="py-2.5 px-2">درس تخصصی</th>
+                                        <th class="py-2.5 px-2">کد ورود</th>
+                                        <th class="py-2.5 px-2">رمز عبور</th>
+                                        <th class="py-2.5 px-2 text-center">ویرایش نام و رمز / حذف</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-teachers-tbody" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ADMIN SUB-TAB 3: FULL HOMEWORK & SUBMISSIONS ACCESS -->
+                <div id="admin-sub-homeworks" class="hidden space-y-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        <!-- Admin Direct Homework Creation -->
+                        <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm h-fit">
+                            <h4 class="font-black text-sm text-atomic-900 mb-4 flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-atomic-amber"></span>
+                                ثبت تکلیف جدید توسط مدیر / معاون
+                            </h4>
+                            <form onsubmit="adminCreateHomework(event)" class="space-y-3.5 text-xs sm:text-sm">
+                                <div class="grid grid-cols-2 gap-2.5">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-600 mb-1">کلاس هدف</label>
+                                        <select id="adm-hw-target-class" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold outline-none">
+                                            <option value="all">همه کلاس‌ها (۷۰۱ تا ۹۰۲)</option>
+                                            <option value="701">کلاس ۷۰۱</option>
+                                            <option value="702">کلاس ۷۰۲</option>
+                                            <option value="801">کلاس ۸۰۱</option>
+                                            <option value="802">کلاس ۸۰۲</option>
+                                            <option value="901">کلاس ۹۰۱</option>
+                                            <option value="902">کلاس ۹۰۲</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-600 mb-1">نام درس / بخش</label>
+                                        <input type="text" id="adm-hw-subject" required placeholder="مثلاً: پژوهش / ریاضی"
+                                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs outline-none">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-600 mb-1">عنوان تکلیف</label>
+                                    <input type="text" id="adm-hw-title" required placeholder="عنوان تکلیف..."
+                                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-600 mb-1">توضیحات تکلیف</label>
+                                    <textarea id="adm-hw-desc" rows="2" required placeholder="توضیحات تکلیف..."
+                                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-600 mb-1">تصویر پیوست (اختیاری)</label>
+                                    <input type="file" id="adm-hw-img" accept="image/*"
+                                        class="w-full bg-slate-50 border border-dashed border-slate-300 rounded-xl p-2 text-xs text-slate-600">
+                                </div>
+                                <button type="submit" class="w-full bg-atomic-900 hover:bg-atomic-800 text-white font-black py-3 rounded-xl text-xs transition shadow">
+                                    + انتشار تکلیف در سامانه
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- All Homeworks & Student Image Submissions -->
+                        <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                            <h3 class="font-black text-sm text-atomic-900 mb-1">نظارت کامل بر تکالیف و تصاویر ارسالی دانش‌آموزان</h3>
+                            <p class="text-xs text-slate-400 mb-4">مشاهده و بزرگنمایی تصاویر تکالیف بارگذاری‌شده توسط دانش‌آموزان کلاس‌های ۷۰۱ تا ۹۰۲</p>
+                            <div id="admin-homework-list" class="space-y-4"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ==========================================
+         JAVASCRIPT ENGINE (KARSANJ V5 UNIFIED)
+         ========================================== -->
+    <script>
+        const STORAGE_KEY_V5 = 'karsanj_atomic_v4_db';
+        let currentRole = 'student';
+        let activeStudent = null;
+        let activeStaff = null;
+        let currentStudyMode = 'academic';
+
+        // Stopwatch state
+        let timerInterval = null;
+        let timerSeconds = 0;
+
+        // Default Database
+        const defaultDB = {
+            principal: {
+                code: 'ADMIN',
+                pass: '123456',
+                name: 'دکتر محسن طاهری',
+                roleTitle: 'مدیر دبیرستان دوره اول انرژی اتمی'
+            },
+            vicePrincipals: [
+                { code: 'VP-101', pass: '123456', name: 'مهندس کاظم رضوان', roleTitle: 'معاون آموزشی و اجرایی' }
+            ],
+            teachers: [
+                { code: 'T-401', pass: '123456', name: 'استاد بهرام فرزانه', subject: 'دبیر ریاضی و علوم تکمیلی' },
+                { code: 'T-402', pass: '123456', name: 'استاد سهند نادری', subject: 'دبیر فیزیک و آزمایشگاه اتمی' }
+            ],
+            students: [
+                {
+                    code: '97101', pass: '7101', name: 'پارسا محمدی', classRoom: '701', status: 'present',
+                    logs: [
+                        { id: 101, mode: 'academic', subject: 'علوم تجربی (فیزیک و شیمی)', topic: 'اندازه‌گیری و چگالی', duration: 60, exercises: 20 }
+                    ]
+                },
+                {
+                    code: '97201', pass: '7201', name: 'سینا کریمی', classRoom: '702', status: 'present',
+                    logs: [
+                        { id: 102, mode: 'academic', subject: 'ریاضی (پایه و تکمیلی)', topic: 'عددهای صحیح', duration: 75, exercises: 25 }
+                    ]
+                },
+                {
+                    code: '98101', pass: '8101', name: 'امیرعلی رادمنش', classRoom: '801', status: 'present',
+                    logs: [
+                        { id: 103, mode: 'academic', subject: 'علوم تجربی (فیزیک و شیمی)', topic: 'فصل ۳ - ساختار اتم و ایزوتوپ‌ها', duration: 90, exercises: 25 },
+                        { id: 104, mode: 'free', subject: 'بخش آزاد: برنامه‌نویسی پایتون', topic: 'طراحی الگوریتم', duration: 60, exercises: 0 }
+                    ]
+                },
+                {
+                    code: '98201', pass: '8201', name: 'کیانوش تهرانی', classRoom: '802', status: 'present',
+                    logs: [
+                        { id: 105, mode: 'academic', subject: 'زبان انگلیسی', topic: 'گرامر درس دوم', duration: 50, exercises: 15 }
+                    ]
+                },
+                {
+                    code: '99101', pass: '9101', name: 'سهراب علوی', classRoom: '901', status: 'present',
+                    logs: [
+                        { id: 106, mode: 'academic', subject: 'ریاضی (پایه و تکمیلی)', topic: 'مجموعه‌ها و احتمال', duration: 110, exercises: 40 }
+                    ]
+                },
+                {
+                    code: '99201', pass: '9201', name: 'نیما فرهمند', classRoom: '902', status: 'late',
+                    logs: [
+                        { id: 107, mode: 'academic', subject: 'علوم تجربی (فیزیک و شیمی)', topic: 'حرکت‌شناسی', duration: 85, exercises: 30 }
+                    ]
+                }
+            ],
+            homeworks: [
+                {
+                    id: 5001,
+                    classRoom: '801',
+                    subject: 'علوم تجربی (فیزیک و شیمی)',
+                    title: 'ترسیم مدل اتمی بور و جدول ایزوتوپ‌ها',
+                    desc: 'نمودار مدل اتمی بور را برای عناصر صفحه ۳۸ در برگه رسم کرده و عکس واضح آن را در همین بخش بارگذاری نمایید.',
+                    teacherName: 'استاد بهرام فرزانه',
+                    createdAt: '۱۴۰۵/۰۸/۱۰',
+                    teacherImage: '',
+                    submissions: []
+                },
+                {
+                    id: 5002,
+                    classRoom: 'all',
+                    subject: 'پژوهش و کارگاه انرژی اتمی',
+                    title: 'گزارش تصویری آزمایش چگالی یا مدار الکتریکی',
+                    desc: 'دانش‌آموزان کلاس‌های ۷۰۱ تا ۹۰۲ خلاصه فعالیت کارگاهی خود را به همراه تصویر آزمایش ارسال نمایند.',
+                    teacherName: 'استاد سهند نادری',
+                    createdAt: '۱۴۰۵/۰۸/۱۱',
+                    teacherImage: '',
+                    submissions: []
+                }
+            ]
+        };
+
+        let db = loadDB();
+
+        function loadDB() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY_V5);
+                if (raw) return JSON.parse(raw);
+            } catch (e) {}
+            return defaultDB;
+        }
+
+        function saveDB() {
+            try {
+                localStorage.setItem(STORAGE_KEY_V5, JSON.stringify(db));
+            } catch (e) {
+                showToast('حجم تصویر زیاد است؛ لطفاً تصویر سبک‌تری انتخاب کنید.');
+            }
+        }
+
+        function fileToDataURL(file, callback) {
+            if (!file) {
+                callback('');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const maxDim = 900;
+                    let w = img.width;
+                    let h = img.height;
+                    if (w > maxDim || h > maxDim) {
+                        if (w > h) { h = Math.round(h * (maxDim / w)); w = maxDim; }
+                        else { w = Math.round(w * (maxDim / h)); h = maxDim; }
+                    }
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+                    callback(canvas.toDataURL('image/jpeg', 0.78));
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function openImageModal(src, title) {
+            document.getElementById('img-modal-src').src = src;
+            document.getElementById('img-modal-title').textContent = title || 'تصویر پیوست تکلیف';
+            const modal = document.getElementById('img-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeImageModal() {
+            const modal = document.getElementById('img-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function getClassFullLabel(cls) {
+            const map = {
+                '701': 'کلاس ۷۰۱ (هفتم)',
+                '702': 'کلاس ۷۰۲ (هفتم)',
+                '801': 'کلاس ۸۰۱ (هشتم)',
+                '802': 'کلاس ۸۰۲ (هشتم)',
+                '901': 'کلاس ۹۰۱ (نهم)',
+                '902': 'کلاس ۹۰۲ (نهم)',
+                'all': 'همه کلاس‌ها (۷۰۱ تا ۹۰۲)'
+            };
+            return map[cls] || `کلاس ${cls}`;
+        }
+
+        function getStudentTotalHours(st) {
+            const mins = (st.logs || []).reduce((acc, item) => acc + (Number(item.duration) || 0), 0);
+            return +(mins / 60).toFixed(1);
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').textContent = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+
+        function fillDemoCreds(u, p) {
+            document.getElementById('login-username').value = u;
+            document.getElementById('login-password').value = p;
+        }
+
+        // Render unified hints list on the single login screen
+        function renderUnifiedLoginHints() {
+            const hintBox = document.getElementById('unified-login-hints');
+            if (!hintBox) return;
+
+            let html = '';
+            // 1. Principal
+            html += `<div onclick="fillDemoCreds('${db.principal.code}','${db.principal.pass}')" class="cursor-pointer hover:text-white bg-amber-500/15 border border-amber-400/30 px-2.5 py-1.5 rounded-lg">
+                👑 <strong>مدیر کل (${db.principal.name}):</strong> کد <span class="text-atomic-gold font-mono">${db.principal.code}</span> | رمز: <span class="text-white font-mono">${db.principal.pass}</span>
+            </div>`;
+
+            // 2. Vice Principals
+            db.vicePrincipals.forEach(vp => {
+                html += `<div onclick="fillDemoCreds('${vp.code}','${vp.pass}')" class="cursor-pointer hover:text-white bg-white/5 px-2.5 py-1 rounded-lg">
+                    👔 <strong>معاون (${vp.name}):</strong> کد <span class="text-atomic-light font-mono">${vp.code}</span> | رمز: <span class="text-white font-mono">${vp.pass}</span>
+                </div>`;
+            });
+
+            // 3. Teachers
+            db.teachers.forEach(t => {
+                html += `<div onclick="fillDemoCreds('${t.code}','${t.pass}')" class="cursor-pointer hover:text-white bg-white/5 px-2.5 py-1 rounded-lg">
+                    👨‍🏫 <strong>دبیر (${t.name}):</strong> کد <span class="text-atomic-light font-mono">${t.code}</span> | رمز: <span class="text-white font-mono">${t.pass}</span>
+                </div>`;
+            });
+
+            // 4. Students
+            db.students.forEach(s => {
+                html += `<div onclick="fillDemoCreds('${s.code}','${s.pass}')" class="cursor-pointer hover:text-white bg-white/5 px-2.5 py-1 rounded-lg">
+                    👨‍🎓 <strong>دانش‌آموز کلاس ${s.classRoom} (${s.name}):</strong> کد <span class="text-white font-mono">${s.code}</span> | رمز: <span class="text-white font-mono">${s.pass}</span>
+                </div>`;
+            });
+
+            hintBox.innerHTML = html;
+        }
+
+        // SMART UNIFIED LOGIN: Automatically detects Principal, Vice-Principal, Teacher, or Student by code
+        function handleUnifiedLogin(e) {
+            e.preventDefault();
+            const u = document.getElementById('login-username').value.trim();
+            const p = document.getElementById('login-password').value.trim();
+
+            // 1. Check Principal
+            if (db.principal.code.toLowerCase() === u.toLowerCase() && db.principal.pass === p) {
+                currentRole = 'admin';
+                activeStaff = { ...db.principal, isPrincipal: true };
+                enterPortal('ورود به پنل مدیریت کل انجام شد.');
+                return;
+            }
+
+            // 2. Check Vice-Principals
+            const foundVP = db.vicePrincipals.find(vp => vp.code.toLowerCase() === u.toLowerCase() && vp.pass === p);
+            if (foundVP) {
+                currentRole = 'admin';
+                activeStaff = { ...foundVP, isPrincipal: false };
+                enterPortal(`خوش آمدید ${foundVP.name} (پنل معاونت).`);
+                return;
+            }
+
+            // 3. Check Teachers
+            const foundT = db.teachers.find(t => t.code.toLowerCase() === u.toLowerCase() && t.pass === p);
+            if (foundT) {
+                currentRole = 'teacher';
+                activeStaff = foundT;
+                enterPortal(`خوش آمدید ${foundT.name} (پنل دبیران).`);
+                return;
+            }
+
+            // 4. Check Students
+            const foundStd = db.students.find(s => s.code.toLowerCase() === u.toLowerCase() && s.pass === p);
+            if (foundStd) {
+                currentRole = 'student';
+                activeStudent = foundStd;
+                enterPortal(`خوش آمدید ${foundStd.name} (کلاس ${foundStd.classRoom}).`);
+                return;
+            }
+
+            showToast('کد کاربری یا رمز عبور اشتباه است!');
+        }
+
+        function enterPortal(welcomeMsg) {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('app-portal').classList.remove('hidden');
+            configurePortalForRole(currentRole);
+            showToast(welcomeMsg);
+        }
+
+        function logout() {
+            document.getElementById('app-portal').classList.add('hidden');
+            document.getElementById('login-screen').classList.remove('hidden');
+            renderUnifiedLoginHints();
+            showToast('از حساب کاربری خود خارج شدید.');
+        }
+
+        function configurePortalForRole(role) {
+            document.querySelectorAll('.role-panel').forEach(p => p.classList.add('hidden'));
+
+            const badge = document.getElementById('header-role-badge');
+            const hName = document.getElementById('header-user-name');
+            const hSub = document.getElementById('header-user-sub');
+            const hMobile = document.getElementById('header-user-info-mobile');
+
+            if (role === 'student') {
+                document.getElementById('panel-student').classList.remove('hidden');
+                badge.textContent = 'پنل دانش‌آموز';
+                hName.textContent = activeStudent.name;
+                hSub.textContent = `${getClassFullLabel(activeStudent.classRoom)} | کد: ${activeStudent.code}`;
+                hMobile.textContent = `${activeStudent.name} (${getClassFullLabel(activeStudent.classRoom)})`;
+                document.getElementById('hw-student-class-badge').textContent = activeStudent.classRoom;
+                document.getElementById('student-banner-info').textContent = `دفتر برنامه‌ریزی کارسنج — ${activeStudent.name} (${getClassFullLabel(activeStudent.classRoom)})`;
+                switchStudentSection('studies');
+
+            } else if (role === 'teacher') {
+                document.getElementById('panel-teacher').classList.remove('hidden');
+                badge.textContent = 'پنل دبیران';
+                hName.textContent = activeStaff.name;
+                hSub.textContent = activeStaff.subject || 'دبیر متوسطه اول';
+                hMobile.textContent = `${activeStaff.name} (${activeStaff.subject})`;
+                switchTeacherTab('attendance');
+
+            } else if (role === 'admin') {
+                document.getElementById('panel-admin').classList.remove('hidden');
+                badge.textContent = activeStaff.isPrincipal ? 'مدیر مدرسه' : 'معاون مدرسه';
+                hName.textContent = activeStaff.name;
+                hSub.textContent = activeStaff.roleTitle || 'مدیریت دبیرستان انرژی اتمی';
+                hMobile.textContent = `${activeStaff.name} (${badge.textContent})`;
+                switchAdminSubTab('students');
+            }
+        }
+
+        // Switch between the 3 Student Sections
+        function switchStudentSection(section) {
+            ['studies', 'homeworks', 'dashboard'].forEach(sec => {
+                document.getElementById('student-sec-' + sec).classList.toggle('hidden', sec !== section);
+                const btn = document.getElementById('tab-btn-' + sec);
+                btn.className = (sec === section)
+                    ? 'py-3 px-3 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-1.5 bg-atomic-900 text-white shadow'
+                    : 'py-3 px-3 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-1.5 text-slate-600 hover:bg-slate-100';
+            });
+
+            if (section === 'studies') renderStudentStudyLogs();
+            if (section === 'homeworks') renderStudentHomeworks();
+            if (section === 'dashboard') renderStudentDashboard();
+        }
+
+        function setStudyMode(mode) {
+            currentStudyMode = mode;
+            const btnAc = document.getElementById('mode-btn-academic');
+            const btnFr = document.getElementById('mode-btn-free');
+            const wrapAc = document.getElementById('academic-subject-wrap');
+            const wrapFr = document.getElementById('free-title-wrap');
+
+            if (mode === 'academic') {
+                btnAc.className = 'py-2 rounded-lg text-xs font-bold bg-white text-atomic-900 shadow-sm transition';
+                btnFr.className = 'py-2 rounded-lg text-xs font-bold text-slate-600 transition';
+                wrapAc.classList.remove('hidden');
+                wrapFr.classList.add('hidden');
+            } else {
+                btnFr.className = 'py-2 rounded-lg text-xs font-bold bg-amber-500 text-white shadow-sm transition';
+                btnAc.className = 'py-2 rounded-lg text-xs font-bold text-slate-600 transition';
+                wrapAc.classList.add('hidden');
+                wrapFr.classList.remove('hidden');
+            }
+        }
+
+        function toggleTimer() {
+            const btn = document.getElementById('timer-toggle-btn');
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                btn.textContent = 'ادامه';
+            } else {
+                btn.textContent = 'توقف';
+                timerInterval = setInterval(() => {
+                    timerSeconds++;
+                    const hrs = String(Math.floor(timerSeconds / 3600)).padStart(2, '0');
+                    const mins = String(Math.floor((timerSeconds % 3600) / 60)).padStart(2, '0');
+                    const secs = String(timerSeconds % 60).padStart(2, '0');
+                    document.getElementById('timer-display').textContent = `${hrs}:${mins}:${secs}`;
+                }, 1000);
+            }
+        }
+
+        function applyTimerToForm() {
+            const mins = Math.max(1, Math.round(timerSeconds / 60));
+            document.getElementById('study-duration').value = mins;
+            showToast(`زمان ${mins} دقیقه در فرم قرار گرفت.`);
+        }
+
+        function switchAdminSubTab(tab) {
+            ['students', 'staff', 'homeworks'].forEach(t => {
+                document.getElementById('admin-sub-' + t).classList.toggle('hidden', t !== tab);
+                const btn = document.getElementById('adm-tab-' + t);
+                btn.className = (t === tab)
+                    ? 'py-3 px-3 rounded-xl text-xs font-black bg-atomic-900 text-white shadow'
+                    : 'py-3 px-3 rounded-xl text-xs font-black text-slate-600 hover:bg-slate-100';
+            });
+            if (tab === 'students') renderAdminTable();
+            if (tab === 'staff') renderAdminStaffTables();
+            if (tab === 'homeworks') renderAdminHomeworks();
+        }
+
+        function switchTeacherTab(tab) {
+            const isAtt = tab === 'attendance';
+            document.getElementById('teacher-sec-attendance').classList.toggle('hidden', !isAtt);
+            document.getElementById('teacher-sec-homework').classList.toggle('hidden', isAtt);
+
+            document.getElementById('t-tab-attendance').className = isAtt
+                ? 'py-3 px-4 rounded-xl text-xs sm:text-sm font-black bg-atomic-900 text-white shadow transition'
+                : 'py-3 px-4 rounded-xl text-xs sm:text-sm font-black text-slate-600 hover:bg-slate-100 transition';
+            document.getElementById('t-tab-homework').className = !isAtt
+                ? 'py-3 px-4 rounded-xl text-xs sm:text-sm font-black bg-atomic-900 text-white shadow transition'
+                : 'py-3 px-4 rounded-xl text-xs sm:text-sm font-black text-slate-600 hover:bg-slate-100 transition';
+
+            if (isAtt) renderAttendanceList();
+            else renderTeacherHomeworks();
+        }
+
+        // ==========================================
+        // STUDENT STUDY LOGS
+        // ==========================================
+        function submitStudyLog(e) {
+            e.preventDefault();
+            if (!activeStudent) return;
+
+            const rawSubject = document.getElementById('study-subject').value;
+            const freeTitle = document.getElementById('study-free-title').value.trim();
+            const rawDuration = document.getElementById('study-duration').value;
+            const rawExercises = document.getElementById('study-exercises').value;
+            const rawTopic = document.getElementById('study-topic').value.trim();
+            const freeNote = document.getElementById('study-free-note').value.trim();
+
+            let finalSubject = '';
+            if (currentStudyMode === 'free') {
+                finalSubject = freeTitle ? `بخش آزاد: ${freeTitle}` : 'بخش آزاد (فعالیت مهارتی/غیردرسی)';
+            } else {
+                finalSubject = rawSubject || 'مطالعه عمومی (بدون انتخاب درس)';
+            }
+
+            const combinedTopic = [rawTopic, freeNote].filter(Boolean).join(' — ') || 'ثبت آزاد (بدون توضیح مبحث)';
+            const duration = rawDuration !== '' ? Number(rawDuration) : 0;
+            const exercises = rawExercises !== '' ? Number(rawExercises) : 0;
+
+            activeStudent.logs.unshift({
+                id: Date.now(),
+                mode: currentStudyMode,
+                subject: finalSubject,
+                topic: combinedTopic,
+                duration,
+                exercises
+            });
+
+            saveDB();
+            renderStudentStudyLogs();
+
+            document.getElementById('study-free-title').value = '';
+            document.getElementById('study-duration').value = '';
+            document.getElementById('study-exercises').value = '';
+            document.getElementById('study-topic').value = '';
+            document.getElementById('study-free-note').value = '';
+            showToast('گزارش مطالعه شما با موفقیت ثبت شد.');
+        }
+
+        function deleteStudyLog(logId) {
+            if (!activeStudent) return;
+            activeStudent.logs = activeStudent.logs.filter(l => l.id !== logId);
+            saveDB();
+            renderStudentStudyLogs();
+            showToast('ردیف انتخاب‌شده حذف گردید.');
+        }
+
+        function renderStudentStudyLogs() {
+            if (!activeStudent) return;
+            const tbody = document.getElementById('student-study-tbody');
+            tbody.innerHTML = '';
+
+            if (!activeStudent.logs || activeStudent.logs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-slate-400 text-xs">هنوز گزارشی ثبت نکرده‌اید.</td></tr>`;
+            } else {
+                activeStudent.logs.forEach(item => {
+                    const isFree = item.mode === 'free' || (item.subject && item.subject.includes('بخش آزاد'));
+                    const badgeClass = isFree
+                        ? 'bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-lg text-xs font-bold'
+                        : 'font-bold text-atomic-900';
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="py-3 px-2"><span class="${badgeClass}">${item.subject}</span></td>
+                        <td class="py-3 px-2 text-slate-600 text-xs">${item.topic}</td>
+                        <td class="py-3 px-2 font-bold text-atomic-cyan">${item.duration ? item.duration + ' دقیقه' : 'ثبت آزاد'}</td>
+                        <td class="py-3 px-2 font-semibold text-slate-600">${item.exercises ? item.exercises + ' مورد' : '-'}</td>
+                        <td class="py-3 px-2 text-center">
+                            <button onclick="deleteStudyLog(${item.id})" class="text-rose-500 hover:bg-rose-50 px-2 py-1 rounded-lg text-xs font-bold">✕</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            document.getElementById('student-total-hours').textContent = getStudentTotalHours(activeStudent) + ' ساعت';
+        }
+
+        // ==========================================
+        // HOMEWORK SYSTEM (WITH IMAGE UPLOAD)
+        // ==========================================
+        function createHomework(e) {
+            e.preventDefault();
+            const targetClass = document.getElementById('hw-target-class').value;
+            const subject = document.getElementById('hw-subject').value.trim();
+            const title = document.getElementById('hw-title').value.trim();
+            const desc = document.getElementById('hw-desc').value.trim();
+            const fileInp = document.getElementById('hw-teacher-img');
+            const file = fileInp.files[0];
+
+            const creatorName = activeStaff ? activeStaff.name : 'دبیر درس';
+
+            fileToDataURL(file, function(dataUrl) {
+                db.homeworks.unshift({
+                    id: Date.now(),
+                    classRoom: targetClass,
+                    subject,
+                    title,
+                    desc,
+                    teacherName: creatorName,
+                    createdAt: new Date().toLocaleDateString('fa-IR'),
+                    teacherImage: dataUrl,
+                    submissions: []
+                });
+                saveDB();
+                document.getElementById('hw-subject').value = '';
+                document.getElementById('hw-title').value = '';
+                document.getElementById('hw-desc').value = '';
+                fileInp.value = '';
+                renderTeacherHomeworks();
+                renderAdminHomeworks();
+                showToast(`تکلیف «${title}» برای ${getClassFullLabel(targetClass)} منتشر شد.`);
+            });
+        }
+
+        function adminCreateHomework(e) {
+            e.preventDefault();
+            const targetClass = document.getElementById('adm-hw-target-class').value;
+            const subject = document.getElementById('adm-hw-subject').value.trim();
+            const title = document.getElementById('adm-hw-title').value.trim();
+            const desc = document.getElementById('adm-hw-desc').value.trim();
+            const fileInp = document.getElementById('adm-hw-img');
+            const file = fileInp.files[0];
+
+            const creatorName = activeStaff ? activeStaff.name : 'مدیریت مدرسه';
+
+            fileToDataURL(file, function(dataUrl) {
+                db.homeworks.unshift({
+                    id: Date.now(),
+                    classRoom: targetClass,
+                    subject,
+                    title,
+                    desc,
+                    teacherName: creatorName,
+                    createdAt: new Date().toLocaleDateString('fa-IR'),
+                    teacherImage: dataUrl,
+                    submissions: []
+                });
+                saveDB();
+                document.getElementById('adm-hw-subject').value = '';
+                document.getElementById('adm-hw-title').value = '';
+                document.getElementById('adm-hw-desc').value = '';
+                fileInp.value = '';
+                renderAdminHomeworks();
+                showToast(`تکلیف «${title}» توسط مدیریت منتشر شد.`);
+            });
+        }
+
+        function deleteHomework(hwId) {
+            db.homeworks = db.homeworks.filter(h => h.id !== hwId);
+            saveDB();
+            renderTeacherHomeworks();
+            renderAdminHomeworks();
+            showToast('تکلیف حذف شد.');
+        }
+
+        function renderStudentHomeworks() {
+            if (!activeStudent) return;
+            const container = document.getElementById('student-homework-list');
+            container.innerHTML = '';
+
+            const myHws = db.homeworks.filter(h => h.classRoom === 'all' || h.classRoom === activeStudent.classRoom);
+
+            if (myHws.length === 0) {
+                container.innerHTML = `<div class="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-400 text-xs">در حال حاضر تکلیفی برای کلاس ${activeStudent.classRoom} ثبت نشده است.</div>`;
+                return;
+            }
+
+            myHws.forEach(hw => {
+                const mySub = (hw.submissions || []).find(s => s.studentCode === activeStudent.code);
+                const statusBadge = mySub
+                    ? `<span class="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-xl text-xs font-black">✓ تحویل داده شده (${mySub.submittedAt})</span>`
+                    : `<span class="bg-amber-100 text-amber-800 px-3 py-1 rounded-xl text-xs font-bold">در انتظار ارسال تکلیف</span>`;
+
+                const teacherImgBtn = hw.teacherImage
+                    ? `<button onclick="openImageModal('${hw.teacherImage}', 'تصویر نمونه سوال دبیر: ${hw.title}')" class="mt-2 inline-flex items-center gap-1.5 bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 px-3 py-1.5 rounded-xl text-xs font-bold transition">🖼️ مشاهده تصویر پیوست دبیر</button>`
+                    : '';
+
+                const existingSubHtml = mySub ? `
+                    <div class="mt-3 p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200 text-xs space-y-2">
+                        <div class="font-black text-emerald-900">پاسخ ثبت‌شده شما:</div>
+                        <p class="text-slate-700">${mySub.note || 'بدون توضیح متنی'}</p>
+                        ${mySub.image ? `
+                            <div>
+                                <img src="${mySub.image}" onclick="openImageModal('${mySub.image}', 'تصویر تکلیف ${activeStudent.name}')" class="h-28 w-auto rounded-xl border border-emerald-300 cursor-pointer object-cover shadow-sm" title="برای بزرگنمایی کلیک کنید">
+                            </div>
+                        ` : ''}
+                    </div>
+                ` : '';
+
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3';
+                card.innerHTML = `
+                    <div class="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 pb-3">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-black bg-atomic-900 text-white px-2.5 py-0.5 rounded-lg">${hw.subject}</span>
+                                <span class="text-xs text-slate-400">ثبت‌کننده: ${hw.teacherName} | تاریخ: ${hw.createdAt}</span>
+                            </div>
+                            <h4 class="text-sm sm:text-base font-black text-atomic-900 mt-1.5">${hw.title}</h4>
+                        </div>
+                        ${statusBadge}
+                    </div>
+
+                    <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">${hw.desc}</p>
+                    ${teacherImgBtn}
+                    ${existingSubHtml}
+
+                    <form onsubmit="submitStudentHomework(event, ${hw.id})" class="mt-3 pt-3 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center bg-slate-50 p-3 rounded-xl">
+                        <div class="sm:col-span-5">
+                            <input type="text" id="sub-note-${hw.id}" placeholder="توضیحات پاسخ شما (اختیاری)..." value="${mySub ? mySub.note : ''}"
+                                class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-atomic-cyan">
+                        </div>
+                        <div class="sm:col-span-4">
+                            <label class="block text-[11px] font-bold text-slate-500 mb-0.5">بارگذاری عکس برگه تکلیف:</label>
+                            <input type="file" id="sub-img-${hw.id}" accept="image/*" class="w-full text-[11px] text-slate-600">
+                        </div>
+                        <div class="sm:col-span-3">
+                            <button type="submit" class="w-full bg-atomic-900 hover:bg-atomic-800 text-white font-bold py-2.5 px-3 rounded-xl text-xs transition shadow">
+                                ${mySub ? 'بروزرسانی تکلیف و تصویر' : '📤 ثبت و ارسال تکلیف'}
+                            </button>
+                        </div>
+                    </form>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function submitStudentHomework(e, hwId) {
+            e.preventDefault();
+            if (!activeStudent) return;
+            const hw = db.homeworks.find(h => h.id === hwId);
+            if (!hw) return;
+
+            const note = document.getElementById('sub-note-' + hwId).value.trim();
+            const fileInp = document.getElementById('sub-img-' + hwId);
+            const file = fileInp.files[0];
+
+            fileToDataURL(file, function(dataUrl) {
+                if (!hw.submissions) hw.submissions = [];
+                const existingIdx = hw.submissions.findIndex(s => s.studentCode === activeStudent.code);
+                const prevImg = existingIdx > -1 ? hw.submissions[existingIdx].image : '';
+
+                const payload = {
+                    studentCode: activeStudent.code,
+                    studentName: activeStudent.name,
+                    classRoom: activeStudent.classRoom,
+                    note: note || 'تکلیف انجام و ارسال شد.',
+                    image: dataUrl || prevImg,
+                    submittedAt: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+                };
+
+                if (existingIdx > -1) hw.submissions[existingIdx] = payload;
+                else hw.submissions.unshift(payload);
+
+                saveDB();
+                renderStudentHomeworks();
+                showToast('تکلیف و تصویر شما با موفقیت ارسال شد.');
+            });
+        }
+
+        function buildHomeworkManagementHTML(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.innerHTML = '';
+
+            if (db.homeworks.length === 0) {
+                container.innerHTML = `<div class="p-6 text-center text-slate-400 text-xs bg-slate-50 rounded-xl">هیچ تکلیفی ثبت نشده است.</div>`;
+                return;
+            }
+
+            db.homeworks.forEach(hw => {
+                const subs = hw.submissions || [];
+                const subsHtml = subs.length === 0
+                    ? `<div class="text-xs text-slate-400 py-2">هنوز دانش‌آموزی برای این تکلیف پاسخی ارسال نکرده است.</div>`
+                    : `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-2">
+                        ${subs.map(s => `
+                            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-start justify-between gap-2 text-xs">
+                                <div>
+                                    <div class="font-black text-atomic-900">${s.studentName} <span class="text-atomic-cyan font-bold">(کلاس ${s.classRoom})</span></div>
+                                    <div class="text-slate-600 mt-1">${s.note}</div>
+                                    <div class="text-[10px] text-slate-400 mt-1">ساعت ارسال: ${s.submittedAt}</div>
+                                </div>
+                                ${s.image ? `
+                                    <img src="${s.image}" onclick="openImageModal('${s.image}', 'تکلیف ${s.studentName} - کلاس ${s.classRoom}')"
+                                        class="w-16 h-16 rounded-lg object-cover border border-atomic-cyan cursor-pointer shrink-0 shadow-sm" title="مشاهده بزرگ تصویر">
+                                ` : `<span class="text-[10px] bg-slate-200 text-slate-600 px-2 py-1 rounded">بدون عکس</span>`}
+                            </div>
+                        `).join('')}
+                    </div>`;
+
+                const card = document.createElement('div');
+                card.className = 'p-4 rounded-2xl border border-slate-200 bg-white space-y-2.5 shadow-sm';
+                card.innerHTML = `
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                        <div>
+                            <span class="text-xs font-black bg-atomic-900 text-atomic-gold px-2.5 py-0.5 rounded-lg">${getClassFullLabel(hw.classRoom)}</span>
+                            <span class="text-xs font-bold text-atomic-cyan mr-1">${hw.subject}</span>
+                            <h5 class="font-black text-sm text-slate-800 mt-1">${hw.title}</h5>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg font-bold">تحویل: ${subs.length} نفر</span>
+                            <button onclick="deleteHomework(${hw.id})" class="text-xs bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 px-2.5 py-1 rounded-lg font-bold transition">حذف</button>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-600">${hw.desc}</p>
+                    ${hw.teacherImage ? `<button onclick="openImageModal('${hw.teacherImage}', 'تصویر ضمیمه: ${hw.title}')" class="text-xs text-sky-700 font-bold underline">🖼️ مشاهده تصویر ضمیمه سوال</button>` : ''}
+                    <div class="pt-2 border-t border-slate-100">
+                        <div class="text-xs font-black text-slate-700">پاسخ‌ها و تصاویر ارسالی دانش‌آموزان:</div>
+                        ${subsHtml}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function renderTeacherHomeworks() {
+            buildHomeworkManagementHTML('teacher-homework-list');
+        }
+
+        function renderAdminHomeworks() {
+            buildHomeworkManagementHTML('admin-homework-list');
+            updateAdminTopCounters();
+        }
+
+        // ==========================================
+        // STUDENT DASHBOARD ANALYTICS
+        // ==========================================
+        function renderStudentDashboard() {
+            if (!activeStudent) return;
+            const totalHrs = getStudentTotalHours(activeStudent);
+            const totalEx = (activeStudent.logs || []).reduce((acc, l) => acc + (Number(l.exercises) || 0), 0);
+            const doneHwCount = db.homeworks.filter(h => (h.submissions || []).some(s => s.studentCode === activeStudent.code)).length;
+
+            document.getElementById('dash-total-hours').textContent = totalHrs + ' ساعت';
+            document.getElementById('dash-total-exercises').textContent = totalEx + ' تمرین';
+            document.getElementById('dash-hw-done').textContent = doneHwCount + ' تکلیف';
+
+            const statusEl = document.getElementById('dash-attendance-status');
+            if (activeStudent.status === 'present') {
+                statusEl.textContent = 'حاضر در مدرسه';
+                statusEl.className = 'text-base font-black text-emerald-600 mt-1.5';
+            } else if (activeStudent.status === 'late') {
+                statusEl.textContent = 'تاخیر ورود';
+                statusEl.className = 'text-base font-black text-amber-600 mt-1.5';
+            } else {
+                statusEl.textContent = 'غایب';
+                statusEl.className = 'text-base font-black text-rose-600 mt-1.5';
+            }
+
+            const barsContainer = document.getElementById('subject-bars-container');
+            barsContainer.innerHTML = '';
+            const map = {};
+            let maxMins = 60;
+            (activeStudent.logs || []).forEach(l => {
+                const key = l.subject || 'سایر';
+                map[key] = (map[key] || 0) + (Number(l.duration) || 15);
+                if (map[key] > maxMins) maxMins = map[key];
+            });
+
+            const entries = Object.entries(map);
+            if (entries.length === 0) {
+                barsContainer.innerHTML = `<div class="text-xs text-slate-400 py-4">با ثبت مطالعه در بخش مطالعات، نمودار تحلیلی شما رسم می‌شود.</div>`;
+            } else {
+                entries.forEach(([subj, mins]) => {
+                    const pct = Math.min(100, Math.round((mins / maxMins) * 100));
+                    const isFree = subj.includes('بخش آزاد');
+                    const barColor = isFree ? 'bg-atomic-amber' : 'bg-atomic-cyan';
+                    barsContainer.innerHTML += `
+                        <div>
+                            <div class="flex justify-between text-xs font-bold mb-1">
+                                <span class="text-slate-700">${subj}</span>
+                                <span class="text-slate-500">${mins} دقیقه</span>
+                            </div>
+                            <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                                <div class="${barColor} h-full rounded-full" style="width: ${pct}%"></div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            const lbList = document.getElementById('leaderboard-list');
+            lbList.innerHTML = '';
+            const sorted = [...db.students].sort((a, b) => getStudentTotalHours(b) - getStudentTotalHours(a)).slice(0, 6);
+            sorted.forEach((st, idx) => {
+                const isMe = activeStudent && st.code === activeStudent.code;
+                lbList.innerHTML += `
+                    <div class="flex items-center justify-between p-2.5 rounded-xl border ${isMe ? 'bg-sky-50 border-atomic-cyan' : 'bg-slate-50 border-slate-100'} text-xs">
+                        <div class="flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-atomic-900 text-atomic-gold font-black flex items-center justify-center">${idx + 1}</span>
+                            <div>
+                                <div class="font-bold text-slate-800">${st.name} ${isMe ? '(شما)' : ''}</div>
+                                <div class="text-[10px] text-slate-500">${getClassFullLabel(st.classRoom)}</div>
+                            </div>
+                        </div>
+                        <span class="font-black text-atomic-cyan">${getStudentTotalHours(st)} ساعت</span>
+                    </div>
+                `;
+            });
+        }
+
+        // ==========================================
+        // TEACHER ATTENDANCE BY CLASS (701-902)
+        // ==========================================
+        function renderAttendanceList() {
+            const cls = document.getElementById('teacher-class-select').value;
+            const tbody = document.getElementById('teacher-attendance-tbody');
+            tbody.innerHTML = '';
+
+            const list = db.students.filter(s => s.classRoom === cls);
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-400 text-xs">دانش‌آموزی در کلاس ${cls} ثبت نشده است.</td></tr>`;
+                return;
+            }
+
+            list.forEach(student => {
+                const lastLog = (student.logs && student.logs.length > 0)
+                    ? `${student.logs[0].subject} (${student.logs[0].topic})`
+                    : 'بدون ثبت اخیر';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="py-3 px-2 font-mono text-xs text-slate-500">${student.code}</td>
+                    <td class="py-3 px-2 font-bold text-slate-800">${student.name}</td>
+                    <td class="py-3 px-2 text-xs font-bold text-atomic-900">کلاس ${student.classRoom}</td>
+                    <td class="py-3 px-2 font-bold text-atomic-cyan">${getStudentTotalHours(student)} ساعت</td>
+                    <td class="py-3 px-2 text-xs text-slate-500 max-w-xs truncate">${lastLog}</td>
+                    <td class="py-3 px-2">
+                        <div class="flex items-center justify-center gap-1.5">
+                            <button onclick="setStudentAttendance('${student.code}', 'present')" class="px-2.5 py-1 rounded-lg text-xs font-bold transition ${student.status === 'present' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'}">حاضر</button>
+                            <button onclick="setStudentAttendance('${student.code}', 'late')" class="px-2.5 py-1 rounded-lg text-xs font-bold transition ${student.status === 'late' ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-600'}">تاخیر</button>
+                            <button onclick="setStudentAttendance('${student.code}', 'absent')" class="px-2.5 py-1 rounded-lg text-xs font-bold transition ${student.status === 'absent' ? 'bg-rose-600 text-white' : 'bg-slate-100 text-slate-600'}">غایب</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function setStudentAttendance(code, status) {
+            const st = db.students.find(s => s.code === code);
+            if (st) {
+                st.status = status;
+                saveDB();
+                renderAttendanceList();
+                renderAdminTable();
+            }
+        }
+
+        function markAllAttendance(status) {
+            const cls = document.getElementById('teacher-class-select').value;
+            db.students.filter(s => s.classRoom === cls).forEach(s => s.status = status);
+            saveDB();
+            renderAttendanceList();
+            showToast(`همه دانش‌آموزان کلاس ${cls} حاضر علامت زده شدند.`);
+        }
+
+        function saveAttendance() {
+            saveDB();
+            showToast('لیست حضور و غیاب کلاس در سامانه ذخیره شد.');
+        }
+
+        // ==========================================
+        // ADMIN MANAGEMENT
+        // ==========================================
+        function updateAdminTopCounters() {
+            document.getElementById('admin-total-students').textContent = db.students.length + ' نفر';
+            document.getElementById('admin-total-staff').textContent = (db.teachers.length + db.vicePrincipals.length + 1) + ' نفر';
+            document.getElementById('admin-total-hw').textContent = db.homeworks.length + ' تکلیف';
+            const presentTotal = db.students.filter(s => s.status === 'present').length;
+            document.getElementById('admin-present-count').textContent = `${presentTotal} از ${db.students.length}`;
+        }
+
+        function renderAdminTable() {
+            const filter = document.getElementById('admin-class-filter').value;
+            const tbody = document.getElementById('admin-master-tbody');
+            tbody.innerHTML = '';
+
+            const filtered = filter === 'all' ? db.students : db.students.filter(s => s.classRoom === filter);
+
+            filtered.forEach(student => {
+                const statusBadge = student.status === 'present'
+                    ? '<span class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-lg text-xs font-bold">حاضر</span>'
+                    : student.status === 'late'
+                    ? '<span class="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-lg text-xs font-bold">تاخیر</span>'
+                    : '<span class="bg-rose-100 text-rose-800 px-2.5 py-1 rounded-lg text-xs font-bold">غایب</span>';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="py-3 px-2 font-bold text-slate-800">${student.name}</td>
+                    <td class="py-3 px-2 text-xs font-black text-atomic-900">${getClassFullLabel(student.classRoom)}</td>
+                    <td class="py-3 px-2 font-mono text-xs font-bold text-atomic-900">${student.code}</td>
+                    <td class="py-3 px-2 font-mono text-xs text-rose-600 font-bold">${student.pass}</td>
+                    <td class="py-3 px-2 font-bold text-atomic-cyan">${getStudentTotalHours(student)} ساعت</td>
+                    <td class="py-3 px-2">${statusBadge}</td>
+                    <td class="py-3 px-2 text-center space-x-1 space-x-reverse">
+                        <button onclick="openEditModal('student', '${student.code}')" class="text-xs bg-amber-50 hover:bg-amber-500 hover:text-white text-amber-800 border border-amber-200 px-2.5 py-1 rounded-lg font-bold transition">
+                            ✎ ویرایش
+                        </button>
+                        <button onclick="toggleAdminStatus('${student.code}')" class="text-xs bg-slate-100 hover:bg-atomic-900 hover:text-white text-slate-700 px-2 py-1 rounded-lg font-bold transition">
+                            تغییر حضور
+                        </button>
+                        <button onclick="deleteStudent('${student.code}')" class="text-xs bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 px-2 py-1 rounded-lg font-bold transition">
+                            حذف
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            updateAdminTopCounters();
+        }
+
+        function adminAddStudent(e) {
+            e.preventDefault();
+            const name = document.getElementById('new-std-name').value.trim();
+            const code = document.getElementById('new-std-code').value.trim();
+            const pass = document.getElementById('new-std-pass').value.trim();
+            const classRoom = document.getElementById('new-std-class').value;
+
+            if (db.students.some(s => s.code.toLowerCase() === code.toLowerCase())) {
+                showToast('این کد دانش‌آموزی قبلاً ثبت شده است!');
+                return;
+            }
+
+            db.students.unshift({
+                code,
+                pass,
+                name,
+                classRoom,
+                status: 'present',
+                logs: []
+            });
+
+            saveDB();
+            document.getElementById('new-std-name').value = '';
+            document.getElementById('new-std-code').value = '';
+            document.getElementById('new-std-pass').value = '';
+            renderAdminTable();
+            showToast(`دانش‌آموز «${name}» به کلاس ${classRoom} اضافه شد.`);
+        }
+
+        function toggleAdminStatus(code) {
+            const st = db.students.find(s => s.code === code);
+            if (!st) return;
+            st.status = st.status === 'present' ? 'absent' : 'present';
+            saveDB();
+            renderAdminTable();
+            showToast(`وضعیت حضور ${st.name} تغییر یافت.`);
+        }
+
+        function deleteStudent(code) {
+            db.students = db.students.filter(s => s.code !== code);
+            saveDB();
+            renderAdminTable();
+            showToast('حساب دانش‌آموز حذف شد.');
+        }
+
+        function renderAdminStaffTables() {
+            document.getElementById('principal-name-inp').value = db.principal.name;
+            document.getElementById('principal-code-inp').value = db.principal.code;
+            document.getElementById('principal-pass-inp').value = db.principal.pass;
+
+            const vpTbody = document.getElementById('admin-vp-tbody');
+            vpTbody.innerHTML = '';
+            db.vicePrincipals.forEach(vp => {
+                vpTbody.innerHTML += `
+                    <tr>
+                        <td class="py-3 px-2 font-bold text-slate-800">${vp.name}</td>
+                        <td class="py-3 px-2 text-xs text-slate-600">${vp.roleTitle}</td>
+                        <td class="py-3 px-2 font-mono text-xs font-bold text-atomic-900">${vp.code}</td>
+                        <td class="py-3 px-2 font-mono text-xs font-bold text-rose-600">${vp.pass}</td>
+                        <td class="py-3 px-2 text-center space-x-1 space-x-reverse">
+                            <button onclick="openEditModal('vp', '${vp.code}')" class="text-xs bg-amber-50 hover:bg-amber-500 hover:text-white text-amber-800 border border-amber-200 px-2.5 py-1 rounded-lg font-bold transition">✎ ویرایش نام و رمز</button>
+                            <button onclick="deleteVP('${vp.code}')" class="text-xs bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 px-2.5 py-1 rounded-lg font-bold transition">حذف</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            const tTbody = document.getElementById('admin-teachers-tbody');
+            tTbody.innerHTML = '';
+            db.teachers.forEach(t => {
+                tTbody.innerHTML += `
+                    <tr>
+                        <td class="py-3 px-2 font-bold text-slate-800">${t.name}</td>
+                        <td class="py-3 px-2 text-xs text-slate-600">${t.subject}</td>
+                        <td class="py-3 px-2 font-mono text-xs font-bold text-atomic-900">${t.code}</td>
+                        <td class="py-3 px-2 font-mono text-xs font-bold text-rose-600">${t.pass}</td>
+                        <td class="py-3 px-2 text-center space-x-1 space-x-reverse">
+                            <button onclick="openEditModal('teacher', '${t.code}')" class="text-xs bg-amber-50 hover:bg-amber-500 hover:text-white text-amber-800 border border-amber-200 px-2.5 py-1 rounded-lg font-bold transition">✎ ویرایش نام و رمز</button>
+                            <button onclick="deleteTeacher('${t.code}')" class="text-xs bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 px-2.5 py-1 rounded-lg font-bold transition">حذف</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            updateAdminTopCounters();
+        }
+
+        function updatePrincipalAccount(e) {
+            e.preventDefault();
+            db.principal.name = document.getElementById('principal-name-inp').value.trim();
+            db.principal.code = document.getElementById('principal-code-inp').value.trim();
+            db.principal.pass = document.getElementById('principal-pass-inp').value.trim();
+            saveDB();
+
+            document.getElementById('header-user-name').textContent = db.principal.name;
+            showToast('مشخصات و کد ورود مدیر کل با موفقیت بروزرسانی شد.');
+        }
+
+        function adminAddVice(e) {
+            e.preventDefault();
+            const name = document.getElementById('new-vp-name').value.trim();
+            const roleTitle = document.getElementById('new-vp-role').value.trim();
+            const code = document.getElementById('new-vp-code').value.trim();
+            const pass = document.getElementById('new-vp-pass').value.trim();
+
+            if (db.vicePrincipals.some(v => v.code.toLowerCase() === code.toLowerCase())) {
+                showToast('این کد معاون قبلاً ثبت شده است!');
+                return;
+            }
+            db.vicePrincipals.push({ code, pass, name, roleTitle });
+            saveDB();
+            document.getElementById('new-vp-name').value = '';
+            document.getElementById('new-vp-role').value = '';
+            document.getElementById('new-vp-code').value = '';
+            document.getElementById('new-vp-pass').value = '';
+            renderAdminStaffTables();
+            showToast(`معاون جدید «${name}» اضافه شد.`);
+        }
+
+        function deleteVP(code) {
+            db.vicePrincipals = db.vicePrincipals.filter(v => v.code !== code);
+            saveDB();
+            renderAdminStaffTables();
+            showToast('حساب معاون حذف شد.');
+        }
+
+        function adminAddTeacher(e) {
+            e.preventDefault();
+            const name = document.getElementById('new-tch-name').value.trim();
+            const subject = document.getElementById('new-tch-subj').value.trim();
+            const code = document.getElementById('new-tch-code').value.trim();
+            const pass = document.getElementById('new-tch-pass').value.trim();
+
+            if (db.teachers.some(t => t.code.toLowerCase() === code.toLowerCase())) {
+                showToast('این کد دبیر قبلاً ثبت شده است!');
+                return;
+            }
+            db.teachers.push({ code, pass, name, subject });
+            saveDB();
+            document.getElementById('new-tch-name').value = '';
+            document.getElementById('new-tch-subj').value = '';
+            document.getElementById('new-tch-code').value = '';
+            document.getElementById('new-tch-pass').value = '';
+            renderAdminStaffTables();
+            showToast(`دبیر جدید «${name}» اضافه شد.`);
+        }
+
+        function deleteTeacher(code) {
+            db.teachers = db.teachers.filter(t => t.code !== code);
+            saveDB();
+            renderAdminStaffTables();
+            showToast('حساب دبیر حذف شد.');
+        }
+
+        function openEditModal(type, code) {
+            document.getElementById('edit-user-type').value = type;
+            document.getElementById('edit-user-orig-code').value = code;
+
+            const classWrap = document.getElementById('edit-class-wrap');
+            const extraWrap = document.getElementById('edit-extra-wrap');
+            classWrap.classList.add('hidden');
+            extraWrap.classList.add('hidden');
+
+            if (type === 'student') {
+                const st = db.students.find(s => s.code === code);
+                if (!st) return;
+                document.getElementById('edit-modal-title').textContent = `ویرایش مشخصات دانش‌آموز (${st.name})`;
+                document.getElementById('edit-user-name').value = st.name;
+                document.getElementById('edit-user-code').value = st.code;
+                document.getElementById('edit-user-pass').value = st.pass;
+                document.getElementById('edit-user-class').value = st.classRoom;
+                classWrap.classList.remove('hidden');
+            } else if (type === 'teacher') {
+                const tch = db.teachers.find(t => t.code === code);
+                if (!tch) return;
+                document.getElementById('edit-modal-title').textContent = `ویرایش مشخصات دبیر (${tch.name})`;
+                document.getElementById('edit-user-name').value = tch.name;
+                document.getElementById('edit-user-code').value = tch.code;
+                document.getElementById('edit-user-pass').value = tch.pass;
+                document.getElementById('edit-user-extra').value = tch.subject;
+                extraWrap.classList.remove('hidden');
+            } else if (type === 'vp') {
+                const vp = db.vicePrincipals.find(v => v.code === code);
+                if (!vp) return;
+                document.getElementById('edit-modal-title').textContent = `ویرایش مشخصات معاون (${vp.name})`;
+                document.getElementById('edit-user-name').value = vp.name;
+                document.getElementById('edit-user-code').value = vp.code;
+                document.getElementById('edit-user-pass').value = vp.pass;
+                document.getElementById('edit-user-extra').value = vp.roleTitle;
+                extraWrap.classList.remove('hidden');
+            }
+
+            const modal = document.getElementById('edit-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeEditModal() {
+            const modal = document.getElementById('edit-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function saveEditedUser(e) {
+            e.preventDefault();
+            const type = document.getElementById('edit-user-type').value;
+            const origCode = document.getElementById('edit-user-orig-code').value;
+            const newName = document.getElementById('edit-user-name').value.trim();
+            const newCode = document.getElementById('edit-user-code').value.trim();
+            const newPass = document.getElementById('edit-user-pass').value.trim();
+
+            if (type === 'student') {
+                const st = db.students.find(s => s.code === origCode);
+                if (st) {
+                    st.name = newName;
+                    st.code = newCode;
+                    st.pass = newPass;
+                    st.classRoom = document.getElementById('edit-user-class').value;
+                }
+                renderAdminTable();
+            } else if (type === 'teacher') {
+                const tch = db.teachers.find(t => t.code === origCode);
+                if (tch) {
+                    tch.name = newName;
+                    tch.code = newCode;
+                    tch.pass = newPass;
+                    tch.subject = document.getElementById('edit-user-extra').value.trim();
+                }
+                renderAdminStaffTables();
+            } else if (type === 'vp') {
+                const vp = db.vicePrincipals.find(v => v.code === origCode);
+                if (vp) {
+                    vp.name = newName;
+                    vp.code = newCode;
+                    vp.pass = newPass;
+                    vp.roleTitle = document.getElementById('edit-user-extra').value.trim();
+                }
+                renderAdminStaffTables();
+            }
+
+            saveDB();
+            closeEditModal();
+            showToast(`اطلاعات و رمز عبور «${newName}» با موفقیت بروزرسانی شد.`);
+        }
+
+        // Initialize Unified Login Hints on Page Load
+        renderUnifiedLoginHints();
+    </script>
+</body>
+</html>
